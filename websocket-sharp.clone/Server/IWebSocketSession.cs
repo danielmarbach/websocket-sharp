@@ -36,9 +36,7 @@ namespace WebSocketSharp.Server
   /// </summary>
   public interface IWebSocketSession
   {
-    #region Properties
-
-    /// <summary>
+      /// <summary>
     /// Gets the information in the connection request to the WebSocket service.
     /// </summary>
     /// <value>
@@ -78,7 +76,5 @@ namespace WebSocketSharp.Server
     /// the <see cref="WebSocket"/> used in the session.
     /// </value>
     WebSocketState State { get; }
-
-    #endregion
   }
 }
