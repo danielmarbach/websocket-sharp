@@ -29,9 +29,9 @@ namespace WebSocketSharp.Tests
 			switch (e.Opcode)
 			{
 				case Opcode.Text:
-					return SendAsync(e.Text.ReadToEnd());
+					return Send(e.Text.ReadToEnd());
 				case Opcode.Binary:
-					return SendAsync(e.Data);
+					return Send(e.Data);
 				case Opcode.Cont:
 				case Opcode.Close:
 				case Opcode.Ping:

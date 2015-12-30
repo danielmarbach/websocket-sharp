@@ -59,31 +59,20 @@ namespace WebSocketSharp.Tests
             }
 
             [Test]
-            public void ClientCanConnectToServer()
-            {
-                using (var client = new WebSocket("ws://localhost:8080/echo"))
-                {
-                    client.Connect();
-
-                    Assert.AreEqual(WebSocketState.Open, client.ReadyState);
-                }
-            }
-
-            [Test]
             public async Task ClientCanConnectAsyncToServer()
             {
                 using (var client = new WebSocket("ws://localhost:8080/echo"))
                 {
-                    await client.ConnectAsync();
+                    await client.Connect();
 
                     Assert.AreEqual(WebSocketState.Open, client.ReadyState);
 
-                    await client.CloseAsync();
+                    await client.Close();
                 }
             }
 
             [Test]
-            public void WhenClientSendsTextMessageThenResponds()
+            public async Task WhenClientSendsTextMessageThenResponds()
             {
                 const string Message = "Message";
                 var waitHandle = new ManualResetEventSlim(false);
@@ -99,27 +88,28 @@ namespace WebSocketSharp.Tests
                         };
                     client.OnMessage = onMessage;
 
-                    client.Connect();
-                    client.Send(Message);
+                    await client.Connect();
+                    await client.Send(Message);
 
                     var result = waitHandle.Wait(Debugger.IsAttached ? 30000 : 2000);
 
                     Assert.True(result);
 
                     client.OnMessage -= onMessage;
-                    client.Close();
+                    await client.Close();
                 }
             }
 
             [Test]
-            public void WhenClientConnectsToNonExistingPathThenStateIsClosed()
+            public async Task WhenClientConnectsToNonExistingPathThenStateIsClosed()
             {
                 using (var client = new WebSocket("ws://localhost:8080/fjgkdfjhgld"))
                 {
-                    client.Connect();
+                    await client.Connect();
 
                     Assert.True(client.ReadyState == WebSocketState.Closed);
-                    client.Close();
+
+                    await client.Close();
                 }
             }
 
@@ -128,40 +118,12 @@ namespace WebSocketSharp.Tests
             {
                 using (var client = new WebSocket("ws://localhost:8080/fjgkdfjhgld"))
                 {
-                    Assert.DoesNotThrow(() => client.Connect());
+                    Assert.That(async () => await client.Connect(), Throws.Nothing);
                 }
             }
 
             [Test]
-            public async Task WhenClientSendsAsyncTextMessageThenResponds()
-            {
-                const string Message = "Message";
-                var waitHandle = new ManualResetEventSlim(false);
-                using (var client = new WebSocket("ws://localhost:8080/echo"))
-                {
-                    Func<MessageEventArgs, Task> onMessage = e =>
-                        {
-                            if (e.Text.ReadToEnd() == Message)
-                            {
-                                waitHandle.Set();
-                            }
-                            return Task.FromResult(true);
-                        };
-                    client.OnMessage = onMessage;
-
-                    client.Connect();
-                    await client.SendAsync(Message);
-
-                    var result = waitHandle.Wait(Debugger.IsAttached ? 30000 : 2000);
-
-                    Assert.True(result);
-
-                    client.OnMessage -= onMessage;
-                }
-            }
-
-            [Test]
-            public async Task WhenClientSendsMultipleAsyncTextMessageThenResponds([Random(1, 100, 10)]int multiplicity)
+            public async Task WhenClientSendsMultipleTextMessageThenResponds([Random(1, 100, 10)]int multiplicity)
             {
                 int count = 0;
                 const string Message = "Message";
@@ -181,10 +143,10 @@ namespace WebSocketSharp.Tests
                         };
                     client.OnMessage = onMessage;
 
-                    client.Connect();
+                    await client.Connect();
                     for (int i = 0; i < multiplicity; i++)
                     {
-                        await client.SendAsync(Message);
+                        await client.Send(Message);
                     }
 
                     var result = waitHandle.Wait(Debugger.IsAttached ? 30000 : 5000);
@@ -192,49 +154,13 @@ namespace WebSocketSharp.Tests
                     Assert.True(result);
 
                     client.OnMessage -= onMessage;
-                    client.Close();
-                }
-            }
-
-            [Test]
-            public void WhenClientSendsMultipleTextMessageThenResponds([Random(1, 100, 10)]int multiplicity)
-            {
-                int count = 0;
-                const string Message = "Message";
-                var waitHandle = new ManualResetEventSlim(false);
-                using (var client = new WebSocket("ws://localhost:8080/echo"))
-                {
-                    Func<MessageEventArgs, Task> onMessage = e =>
-                        {
-                            if (e.Text.ReadToEnd() == Message)
-                            {
-                                if (Interlocked.Increment(ref count) == multiplicity)
-                                {
-                                    waitHandle.Set();
-                                }
-                            }
-                            return Task.FromResult(true);
-                        };
-                    client.OnMessage = onMessage;
-
-                    client.Connect();
-                    for (var i = 0; i < multiplicity; i++)
-                    {
-                        client.Send(Message);
-                    }
-
-                    var result = waitHandle.Wait(Debugger.IsAttached ? 30000 : 5000);
-
-                    Assert.True(result);
-
-                    client.OnMessage -= onMessage;
-                    client.Close();
+                    await client.Close();
                 }
             }
 
             [Test]
             [Ignore]
-            public void CanSendTwentyThousandSynchronousRequestsPerSecond()
+            public async Task CanSendTwentyThousandSynchronousRequestsPerSecond()
             {
                 var stopwatch = new Stopwatch();
                 int count = 0;
@@ -259,11 +185,11 @@ namespace WebSocketSharp.Tests
                         };
                     client.OnMessage = onMessage;
 
-                    client.Connect();
+                    await client.Connect();
                     stopwatch.Start();
                     for (int i = 0; i < Multiplicity; i++)
                     {
-                        client.Send(stream);
+                        await client.Send(stream);
                     }
 
                     stopwatch.Stop();
@@ -275,13 +201,13 @@ namespace WebSocketSharp.Tests
                     Assert.LessOrEqual(stopwatch.Elapsed, TimeSpan.FromSeconds(1));
 
                     client.OnMessage -= onMessage;
-                    client.Close();
+                    await client.Close();
                 }
             }
 
             [Test]
             [Ignore]
-            public void CanReceiveTwentyFiveThousandSynchronousRequestsInSixSeconds()
+            public async Task CanReceiveTwentyFiveThousandSynchronousRequestsInSixSeconds()
             {
                 var responseWatch = new Stopwatch();
                 int count = 0;
@@ -305,11 +231,11 @@ namespace WebSocketSharp.Tests
                         };
                     client.OnMessage += onMessage;
 
-                    client.Connect();
+                    await client.Connect();
                     responseWatch.Start();
                     for (int i = 0; i < Multiplicity; i++)
                     {
-                        client.Send(stream);
+                        await client.Send(stream);
                     }
 
 
@@ -319,7 +245,7 @@ namespace WebSocketSharp.Tests
                     Assert.LessOrEqual(responseWatch.Elapsed, TimeSpan.FromSeconds(6));
 
                     client.OnMessage -= onMessage;
-                    client.Close();
+                    await client.Close();
                 }
             }
 
@@ -350,10 +276,10 @@ namespace WebSocketSharp.Tests
                         };
                     client.OnMessage += onMessage;
 
-                    client.Connect();
+                    await client.Connect();
                     stopwatch.Start();
 
-                    var tasks = Enumerable.Range(0, Multiplicity).Select(x => client.SendAsync(stream, length));
+                    var tasks = Enumerable.Range(0, Multiplicity).Select(x => client.Send(stream, length));
 
                     await Task.WhenAll(tasks);
                     stopwatch.Stop();
@@ -365,7 +291,7 @@ namespace WebSocketSharp.Tests
                     Assert.LessOrEqual(stopwatch.Elapsed, TimeSpan.FromSeconds(1));
 
                     client.OnMessage -= onMessage;
-                    client.Close();
+                    await client.Close();
                 }
             }
 
@@ -394,10 +320,10 @@ namespace WebSocketSharp.Tests
                     };
                 client.OnMessage += onMessage;
 
-                client.Connect();
+                await client.Connect();
                 responseWatch.Start();
 
-                var tasks = Enumerable.Range(0, Multiplicity).Select(x => client.SendAsync(stream, length));
+                var tasks = Enumerable.Range(0, Multiplicity).Select(x => client.Send(stream, length));
 
                 await Task.WhenAll(tasks);
 
@@ -408,6 +334,7 @@ namespace WebSocketSharp.Tests
                 Assert.LessOrEqual(responseWatch.Elapsed, TimeSpan.FromSeconds(10));
 
                 client.OnMessage -= onMessage;
+                await client.Close();
                 client.Dispose();
             }
 
@@ -439,14 +366,16 @@ namespace WebSocketSharp.Tests
 
                     client.OnMessage += onMessage;
 
-                    await client.ConnectAsync();
-                    await client.SendAsync(stream);
+                    await client.Connect();
+                    await client.Send(stream);
 
                     var result = waitHandle.Wait(Debugger.IsAttached ? -1 : 20000);
 
+                    Assert.True(result);
                     Assert.AreEqual(length, responseLength);
 
                     client.OnMessage -= onMessage;
+                    await client.Close();
                 }
             }
 
@@ -475,16 +404,17 @@ namespace WebSocketSharp.Tests
 
                 client.OnMessage += onMessage;
 
-                sender.Connect();
-                client.Connect();
-                await sender.SendAsync(stream);
+                await sender.Connect();
+                await client.Connect();
+                await sender.Send(stream);
 
                 var result = waitHandle.Wait(Debugger.IsAttached ? -1 : 15000);
 
+                Assert.True(result);
                 Assert.AreEqual(length, responseLength);
 
-                await client.CloseAsync();
-                await sender.CloseAsync();
+                await client.Close();
+                await sender.Close();
 
                 client.OnMessage -= onMessage;
                 sender.Dispose();

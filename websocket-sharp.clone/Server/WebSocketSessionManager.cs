@@ -275,7 +275,7 @@ namespace WebSocketSharp.Server
             var results =
                 Sessions.TakeWhile(session => _state == ServerState.Start)
                     .Select(session => session.Context.WebSocket.InnerSend(opcode, data));
-            return results.All(x => x);
+            return results.All(x => x.GetAwaiter().GetResult());
         }
 
         internal bool InnerBroadcast(Fin final, Opcode opcode, byte[] data)
@@ -284,7 +284,7 @@ namespace WebSocketSharp.Server
                 Sessions.TakeWhile(session => _state == ServerState.Start)
                     .Select(session => session.Context.WebSocket.InnerSend(final, opcode, data))
                     .ToArray();
-            return results.All(x => x);
+            return results.All(x => x.GetAwaiter().GetResult());
         }
 
         internal bool InnerBroadcast(Opcode opcode, Stream stream)
@@ -307,7 +307,7 @@ namespace WebSocketSharp.Server
 
         internal Dictionary<string, bool> InnerBroadping(byte[] frameAsBytes, TimeSpan timeout)
         {
-            return Sessions.TakeWhile(session => _state == ServerState.Start).ToDictionary(session => session.ID, session => session.Context.WebSocket.InnerPing(frameAsBytes, timeout));
+            return Sessions.TakeWhile(session => _state == ServerState.Start).ToDictionary(session => session.ID, session => session.Context.WebSocket.InnerPing(frameAsBytes, timeout).GetAwaiter().GetResult());
         }
 
         internal bool Remove(string id)
@@ -336,7 +336,7 @@ namespace WebSocketSharp.Server
                 _sweepTimer.Enabled = false;
                 foreach (var session in _sessions.Values.ToList())
                 {
-                    session.Context.WebSocket.InnerClose(e, frameAsBytes, timeout);
+                    session.Context.WebSocket.InnerClose(e, frameAsBytes, timeout).GetAwaiter().GetResult();
                 }
 
                 _state = ServerState.Stop;
@@ -487,7 +487,7 @@ namespace WebSocketSharp.Server
         /// </param>
         public Dictionary<string, bool> Broadping(string message)
         {
-            if (message == null || message.Length == 0)
+            if (string.IsNullOrEmpty(message))
                 return Broadping();
 
             byte[] data = null;
@@ -553,7 +553,7 @@ namespace WebSocketSharp.Server
         public bool PingTo(string id)
         {
             IWebSocketSession session;
-            return TryGetSession(id, out session) && session.Context.WebSocket.Ping();
+            return TryGetSession(id, out session) && session.Context.WebSocket.Ping().GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -573,7 +573,7 @@ namespace WebSocketSharp.Server
         public bool PingTo(string id, string message)
         {
             IWebSocketSession session;
-            return TryGetSession(id, out session) && session.Context.WebSocket.Ping(message);
+            return TryGetSession(id, out session) && session.Context.WebSocket.Ping(message).GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -632,7 +632,7 @@ namespace WebSocketSharp.Server
             IWebSocketSession session;
             if (TryGetSession(id, out session))
             {
-                return session.Context.WebSocket.SendAsync(data);
+                return session.Context.WebSocket.Send(data);
             }
 
             return Task.FromResult(false);
@@ -656,7 +656,7 @@ namespace WebSocketSharp.Server
             IWebSocketSession session;
             if (TryGetSession(id, out session))
             {
-                return session.Context.WebSocket.SendAsync(data);
+                return session.Context.WebSocket.Send(data);
             }
 
             return Task.FromResult(false);
@@ -681,7 +681,7 @@ namespace WebSocketSharp.Server
         public Task<bool> SendToAsync(string id, Stream stream, int length)
         {
             IWebSocketSession session;
-            return this.TryGetSession(id, out session) ? session.Context.WebSocket.SendAsync(stream, length) : Task.FromResult(false);
+            return this.TryGetSession(id, out session) ? session.Context.WebSocket.Send(stream, length) : Task.FromResult(false);
         }
 
         /// <summary>

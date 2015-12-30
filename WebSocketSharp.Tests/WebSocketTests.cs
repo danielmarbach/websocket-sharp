@@ -49,15 +49,15 @@ namespace WebSocketSharp.Tests
             [Test]
             public async Task WhenClosingAsyncThenCloses()
             {
-                await _sut.CloseAsync();
+                await _sut.Close();
 
                 Assert.AreEqual(WebSocketState.Closed, _sut.ReadyState);
             }
 
             [Test]
-            public void WhenConnectingToAddressThenConnects()
+            public async Task WhenConnectingToAddressThenConnects()
             {
-                var connected = _sut.Connect();
+                var connected = await _sut.Connect();
 
                 Assert.IsTrue(connected);
             }
@@ -107,7 +107,7 @@ namespace WebSocketSharp.Tests
                 var connected = _sut.Connect();
                 Console.WriteLine("Connected: " + connected);
 
-                var sent = await _sut.SendAsync(Message);
+                var sent = await _sut.Send(Message);
                 Console.WriteLine("Sent: " + sent);
 
                 var result = waitHandle.Wait(2000);
@@ -118,7 +118,7 @@ namespace WebSocketSharp.Tests
             [Test]
             public async Task WhenConnectingAsyncToAddressThenConnects()
             {
-                await _sut.ConnectAsync();
+                await _sut.Connect();
 
                 Assert.IsTrue(_sut.ReadyState == WebSocketState.Open);
             }
